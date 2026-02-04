@@ -47,6 +47,42 @@ const registerUser = async (req, res) => {
   }
 };
 
+const loginUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() });
+  }
+
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: "All Fields are required!!" });
+  }
+
+  try {
+    const user = await userModel.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(401).json({
+        message: "Email or Password is incorrect!!",
+      });
+    }
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res
+        .status(404)
+        .json({ message: "Email or Password is incorrect!!" });
+    }
+
+    const token = user.generateAuthToken();
+    res.cookie("token", token);
+    res.status(200).json({ user, token });
+  } catch (err) {
+    console.log(err);
+  }
+};
+
 module.exports = {
   registerUser,
+  loginUser,
 };

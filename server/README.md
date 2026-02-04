@@ -224,6 +224,78 @@ fetch('http://localhost:4000/users/register', {
 .catch(error => console.error('Error:', error));
 ```
 
+---
+
+### POST /users/login
+
+**Description:** Authenticate a user and issue a JWT token.
+
+**URL:** `http://localhost:4000/users/login`
+
+**Method:** `POST`
+
+**Headers:**
+```
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Behavior:**
+- Validates input (email, password).
+- Verifies credentials against stored hashed password.
+- On success: returns user object and token, and sets cookie `token`.
+
+**Status Codes:**
+
+| Code | Description |
+|------|-------------|
+| **200** | Authenticated - returns user and token |
+| **400** | Missing fields |
+| **401** | Invalid credentials |
+| **422** | Validation error |
+
+**Success Response (200):**
+```json
+{
+  "user": {
+    "_id": "67890abc123def456ghi789",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "role": "student"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Note:** The server also sets a cookie named `token` with the JWT value: `res.cookie("token", token)`.
+
+---
+
+## Role-Based Access Middleware
+
+**File:** `src/middlewares/roleMiddleware.js`
+
+**Description:** Middleware factory `role(...allowedRoles)` that enforces role-based access on protected routes. It checks `req.user` and allowed roles and responds with:
+- `401 Unauthorized` if `req.user` is not set
+- `403 Access denied` if user's role is not in allowed roles
+
+**Usage Example:**
+```javascript
+// Example: protect /admin route for admin users
+const role = require('./middlewares/roleMiddleware');
+
+router.get('/admin', authMiddleware, role('admin'), adminController.getDashboard);
+```
+
+**Note:** `role` expects an authentication middleware to populate `req.user`.
+
 ## Project Structure
 
 ```
@@ -233,9 +305,11 @@ server/
 │   ├── models/
 │   │   └── userModel.js          # User schema and methods
 │   ├── controllers/
-│   │   └── userController.js     # Registration logic
+│   │   └── userController.js     # Registration & login logic
 │   ├── routes/
 │   │   └── userRoutes.js         # User route handlers
+│   ├── middlewares/
+│   │   └── roleMiddleware.js     # Role-based access control
 │   └── db/
 │       └── db.js                 # MongoDB connection
 ├── server.js                     # Server entry point
@@ -248,8 +322,9 @@ server/
 - `server.js` - Creates HTTP server and starts listening on PORT
 - `src/app.js` - Express app setup with middleware and routes
 - `src/models/userModel.js` - User schema with password hashing and JWT token generation
-- `src/controllers/userController.js` - User registration business logic
+- `src/controllers/userController.js` - User registration and login business logic
 - `src/routes/userRoutes.js` - Route definitions with validation
+- `src/middlewares/roleMiddleware.js` - Role-based access control middleware
 - `src/db/db.js` - MongoDB connection using Mongoose
 
 ## Middleware
